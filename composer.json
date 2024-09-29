@@ -1,0 +1,23 @@
+{
+    "name": "sv/reviewmanager",
+    "description": "Prestashop module",
+    "license": "AFL-3.0",
+    "authors": [
+      {
+        "name": "Sviatlana Viarbitskaya"
+      }
+    ],
+    "autoload": {
+      "psr-4": {
+        "Reviewmanager\\": "src/"
+      }
+    },
+    "require": {
+      "php": ">=7.2.5"
+    },
+    "config": {
+      "preferred-install": "dist",
+      "prepend-autoloader": false
+    },
+    "type": "prestashop-module"
+  }
