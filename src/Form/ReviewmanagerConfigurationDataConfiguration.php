@@ -28,9 +28,8 @@ use PrestaShop\PrestaShop\Core\ConfigurationInterface;
 /**
  * Configuration is used to save data to configuration table and retrieve from it.
  */
-final class ReviewmanagerConfigurationTextDataConfiguration implements DataConfigurationInterface
+final class ReviewmanagerConfigurationDataConfiguration implements DataConfigurationInterface
 {
-    public const REVIEWMANAGEMENT_SOURCE_TYPE = 'REVIEWMANAGEMENT_SOURCE_TYPE';
 
     /**
      * @var ConfigurationInterface
@@ -40,13 +39,14 @@ final class ReviewmanagerConfigurationTextDataConfiguration implements DataConfi
     public function __construct(ConfigurationInterface $configuration)
     {
         $this->configuration = $configuration;
+        $this->module = \Module::getInstanceByName('reviewmanager');
     }
 
     public function getConfiguration(): array
     {
         $return = [];
 
-        $return['source'] = $this->configuration->get(static::REVIEWMANAGEMENT_SOURCE_TYPE);
+        $return['source'] = $this->configuration->get($this->module::REVIEWMANAGEMENT_SOURCE_TYPE);
 
         return $return;
     }
@@ -56,7 +56,7 @@ final class ReviewmanagerConfigurationTextDataConfiguration implements DataConfi
         $errors = [];
 
         if ($this->validateConfiguration($configuration)) {
-            $this->configuration->set(static::REVIEWMANAGEMENT_SOURCE_TYPE, $configuration['source']);
+            $this->configuration->set($this->module::REVIEWMANAGEMENT_SOURCE_TYPE, $configuration['source']);
         }
 
         /* Errors are returned here. */

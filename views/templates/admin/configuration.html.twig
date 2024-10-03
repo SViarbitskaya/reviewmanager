@@ -20,4 +20,17 @@
     </div>
   </div>
   {{ form_end(reviewmanagerConfigurationForm) }}
+
+
+  <div class="card">
+    <h3 class="card-header">
+      <i class="material-icons">star</i> {{ 'Most recent scores'|trans({}, 'Modules.Reviewmanager.Admin') }}
+    </h3>
+    <div class="card-body">
+      <div class="svg-container">
+        {{ svgRating|raw }}
+      </div>
+    </div>
+  </div>
+
 {% endblock %}

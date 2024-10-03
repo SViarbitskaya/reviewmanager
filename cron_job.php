@@ -7,8 +7,7 @@ include(dirname(__FILE__).'/../../config/config.inc.php');
 $module = Module::getInstanceByName('reviewmanager');
 
 if ($module) {
-    // Call the method you want to execute
-    $module->updateReviewData(); // Replace with your actual function
+    $module->updateReviewData(); 
 }
 
 // Log success or failure

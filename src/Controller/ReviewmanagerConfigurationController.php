@@ -10,16 +10,22 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ReviewmanagerConfigurationController extends FrameworkBundleAdminController
 {
+    public function __construct()
+    {
+        $this->module = \Module::getInstanceByName('reviewmanager');
+        parent::__construct();
+    }
+
     public function index(Request $request): Response
     {
-        $textFormDataHandler = $this->get('reviewmanager.form.reviewmanager_configuration_text_form_data_handler');
+        $formDataHandler = $this->get('reviewmanager.form.reviewmanager_configuration_form_data_handler');
 
-        $textForm = $textFormDataHandler->getForm();
-        $textForm->handleRequest($request);
+        $form = $formDataHandler->getForm();
+        $form->handleRequest($request);
 
-        if ($textForm->isSubmitted() && $textForm->isValid()) {
+        if ($form->isSubmitted() && $form->isValid()) {
             /** You can return array of errors in form handler and they can be displayed to user with flashErrors */
-            $errors = $textFormDataHandler->save($textForm->getData());
+            $errors = $formDataHandler->save($form->getData());
 
             if (empty($errors)) {
                 $this->addFlash('success', $this->trans('Successful update.', 'Admin.Notifications.Success'));
@@ -30,8 +36,13 @@ class ReviewmanagerConfigurationController extends FrameworkBundleAdminControlle
             $this->flashErrors($errors);
         }
 
-        return $this->render('@Modules/reviewmanager/views/templates/admin/form.html.twig', [
-            'reviewmanagerConfigurationForm' => $textForm->createView(),
+        // Load the SVG file from the module's data directory
+        $svgPath = $this->module::SVG_FILEPATH. '/avis.svg';
+        $svgContent = file_get_contents($svgPath);
+
+        return $this->render('@Modules/reviewmanager/views/templates/admin/configuration.html.twig', [
+            'reviewmanagerConfigurationForm' => $form->createView(),
+            'svgRating' => $svgContent,
         ]);
     }
 }
