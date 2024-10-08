@@ -2,15 +2,18 @@
 
 declare(strict_types=1);
 
-use Reviewmanager\Service\ReviewUpdateService;
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Logger;
 
 class Reviewmanager extends Module
 { 
     public const REVIEWMANAGEMENT_SOURCE_TYPE = 'REVIEWMANAGEMENT_SOURCE_TYPE';
-    public const SVG_FILEPATH =  _PS_MODULE_DIR_ . 'reviewmanager/data/svg/';
-    public const CSV_FILEPATH =  _PS_MODULE_DIR_ . 'reviewmanager/data/csv/';
     public const SOURCE_SQL = 'sql';
     public const SOURCE_CSV = 'csv';
+    public const SVG_FILEPATH =  _PS_MODULE_DIR_ . 'reviewmanager/data/svg/avis.svg';
+    public const SVG_BACKUP_FILEPATH =  _PS_MODULE_DIR_ . 'reviewmanager/data/svg/avis_backup.svg';
+    public const CSV_FILEPATH =  _PS_MODULE_DIR_ . 'reviewmanager/data/csv/avis.csv';
+    public const CRON_LOG_FILEPATH =  _PS_MODULE_DIR_ . 'reviewmanager/logs/cron.log';
 
     public function __construct()
     {
@@ -32,6 +35,34 @@ class Reviewmanager extends Module
         $this->ps_versions_compliancy = ['min' => '1.7.0', 'max' => '1.7.99'];
     }
 
+    public function install()
+    {
+        return parent::install() && $this->registerHook('displayBackOfficeHeader');
+    }
+
+    public function uninstall()
+    {
+        return (
+            parent::uninstall() 
+            && Configuration::deleteByName(Configuration::get(static::REVIEWMANAGEMENT_SOURCE_TYPE))
+        );
+    }
+
+        public function hookDisplayBackOfficeHeader()
+    {
+        $controller = Tools::getValue('controller');
+        $moduleController = Tools::getValue('configure');
+
+        dump($controller);
+        dump($moduleController);
+
+        if ($controller == 'AdminModules' && $moduleController == $this->name) {
+
+            $this->context->controller->addJS($this->_path . 'views/js/reviewmanager.js');
+        }
+    }
+
+
     public function getContent()
     {
         $route = $this->get('router')->generate('reviewmanager_configuration_form_simple');
@@ -41,26 +72,42 @@ class Reviewmanager extends Module
     // This is the function caled by cron_job.php
     public function updateReviewData()
     {
+        // Setup the Logger
+        $logPath = self::CRON_LOG_FILEPATH;
+        $logger = new Logger('cron_logger');
+        $logger->pushHandler(new RotatingFileHandler($logPath, 7, Logger::DEBUG)); // 7 = keep logs for 7 days
+
         try {
-            $this->updateSvgWithReviewData();
+            $svgFilePath = self::SVG_FILEPATH;
+            $backupFilePath = self::SVG_BACKUP_FILEPATH;
+
+            // Verify that the model (or the more recent) avis.svg exists
+            if (!file_exists($svgFilePath)) {
+                throw new Exception("File not found: $svgFilePath");
+            }
+
+            // Create a backup of the SVG file before updating
+            if (!copy($svgFilePath, $backupFilePath)) {
+                throw new Exception("Failed to create backup of the SVG file.");
+            }
+
+            // Get the actual review data
+            $reviewData = $this->getReviewData();
+
+            // Update SVG file
+            $this->updateSvgWithReviewData($reviewData, $svgFilePath);
+
+            $logger->info('Cron job executed successfully.');
         } catch (Exception $e) {
-            // If an error occurs, revert to backup
+            // If an error occurs, revert to backup. When relaunched, cron job will use the backup file as a model svg file.
             copy($backupFilePath, $svgFilePath);
             // Log the error
-            PrestaShopLogger::addLog('Error updating SVG: ' . $e->getMessage(), 3);
+            $logger->error($e->getMessage());
         }
     }
 
-    public function updateSvgWithReviewData()
+    public function updateSvgWithReviewData($reviewData, $svgFilePath)
     {
-        $reviewData = $this->getReviewData();
-
-        $svgFilePath = self::SVG_FILEPATH . '/avis.svg';
-        $backupFilePath = self::SVG_FILEPATH . '/avis_backup.svg';
-
-        // Backup existing SVG
-        copy($svgFilePath, $backupFilePath);
-
         // Load the SVG file using DOMDocument
         $svg = new DOMDocument();
         $svg->load($svgFilePath );
@@ -74,65 +121,53 @@ class Reviewmanager extends Module
             $note_total->nodeValue =  $reviewData['review_count'] . " avis";
         }
 
-        // Update the <text> element with id="review-badge-avis-total"
+        // Update the <text> element with id="review-badge-note"
         $avis_total = $xpath->query('//*[@id="review-badge-note"]')->item(0);
         if ($avis_total) {
             $avis_total->nodeValue =  $reviewData['average'] . " / 5";
         }
 
-        // Find and update the JSON-LD block
-        $script = $xpath->query('//script[@type="application/ld+json"]')->item(0);
-        dump($xpath->query('//script[@type="application/ld+json"]'));
-        if ($script) {
-            $json_ld = json_decode($script->nodeValue, true);
-            
-            if ($json_ld) {
-                // Update the review count and average values in JSON-LD
-                $json_ld['aggregateRating']['reviewCount'] =  $reviewData['review_count'];
-                $json_ld['aggregateRating']['ratingValue'] =  $reviewData['average'];
-                
-                // Update the script content with the new JSON-LD
-                $script->nodeValue = json_encode($json_ld, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            }
-        }
-
         // Save the updated SVG back to a file
         $svg->save($svgFilePath);
 
-        echo "SVG updated successfully!";
-
-        die;
-
-        $jsonLd = generateJsonLd($reviewData);
-
-        // Replace placeholders for review count and average rating
-        $updatedSvg = str_replace('PLACEHOLDER_REVIEW_COUNT', $reviewData['review_count'], $svgContent);
-        $updatedSvg = str_replace('PLACEHOLDER_AVERAGE_RATING', $reviewData['average'], $updatedSvg);
-
-        // Save the updated SVG
-        file_put_contents($svgFilePath, $updatedSvg);
+        return;
     }
 
     public function getReviewData()
     {
-        $source = Configuration::get(static::REVIEWMANAGEMENT_SOURCE_TYPE);
+        $source = Configuration::get(self::REVIEWMANAGEMENT_SOURCE_TYPE);
         if ($source === 'sql') {
             return $this->getReviewDataFromSql();
         } elseif ($source === 'csv') {
-            return $this->getReviewDataFromCsv(self::CSV_FILEPATH . '/avis.csv');
+            return $this->getReviewDataFromCsv(self::CSV_FILEPATH);
+        }else{
+            throw new Exception("Source type is not defined.");
         }
     }
 
     public function getReviewDataFromSql()
     {
         // Fake SQL for testing
-        return [
-            'average' => 4.5,
-            'review_count' => 123,
-        ];
+        $sqlFails = 0;
+
+        if ($sqlFails === 1){
+            throw new Exception("SQL request failed with the message [add error message here].");
+        }else{
+            return [
+                'average' => 4.5,
+                'review_count' => 123,
+            ];
+        }
+
     }
+
     public function getReviewDataFromCsv($filePath)
     {
+        // Verify that the csv file exists
+        if (!file_exists($filePath)) {
+            throw new Exception("File not found: $filePath");
+        }
+
         if (($handle = fopen($filePath, "r")) !== false) {
             // Read the first line to get the headers
             $headers = fgetcsv($handle, 1000, ",");
@@ -152,21 +187,8 @@ class Reviewmanager extends Module
             
             fclose($handle);
             return $reviewData; // Return the collected review data
+        } else{
+            throw new Exception("File could not be opened: $filePath");
         }
-        
-        return false; // Return false if the file could not be opened
-    }
-
-
-
-    public function generateJsonLd($reviewData)
-    {
-        $jsonLd = [
-            "@context" => "http://schema.org",
-            "@type" => "AggregateRating",
-            "ratingValue" => $reviewData['average'],
-            "reviewCount" => $reviewData['review_count']
-        ];
-        return json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 }

@@ -37,7 +37,7 @@ class ReviewmanagerConfigurationController extends FrameworkBundleAdminControlle
         }
 
         // Load the SVG file from the module's data directory
-        $svgPath = $this->module::SVG_FILEPATH. '/avis.svg';
+        $svgPath = $this->module::SVG_FILEPATH;
         $svgContent = file_get_contents($svgPath);
 
         return $this->render('@Modules/reviewmanager/views/templates/admin/configuration.html.twig', [

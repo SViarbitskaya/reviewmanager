@@ -13,7 +13,8 @@
       }
     },
     "require": {
-      "php": ">=7.2.5"
+      "php": ">=7.2.5",
+        "symfony/monolog-bundle": "^3.10"
     },
     "config": {
       "preferred-install": "dist",
