@@ -32,7 +32,7 @@ class Reviewmanager extends Module
             'Modules.Reviewmanager.Admin'
         );
 
-        $this->ps_versions_compliancy = ['min' => '1.7.0', 'max' => '1.7.99'];
+        $this->ps_versions_compliancy = ['min' => '1.7.3', 'max' => '1.7.99'];
     }
 
     public function install()
@@ -51,13 +51,8 @@ class Reviewmanager extends Module
         public function hookDisplayBackOfficeHeader()
     {
         $controller = Tools::getValue('controller');
-        $moduleController = Tools::getValue('configure');
 
-        dump($controller);
-        dump($moduleController);
-
-        if ($controller == 'AdminModules' && $moduleController == $this->name) {
-
+        if ($controller == 'AdminReviewmanager') {
             $this->context->controller->addJS($this->_path . 'views/js/reviewmanager.js');
         }
     }
@@ -65,7 +60,7 @@ class Reviewmanager extends Module
 
     public function getContent()
     {
-        $route = $this->get('router')->generate('reviewmanager_configuration_form_simple');
+        $route = $this->get('router')->generate('reviewmanager_configuration_form');
         Tools::redirectAdmin($route);
     }
 

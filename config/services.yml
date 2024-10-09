@@ -1,12 +1,9 @@
 services:
-  _defaults:
-    public: true
 
   # Reviewmanager configuration form
   reviewmanager.form.type.reviewmanager_configuration:
     class: 'Reviewmanager\Form\ReviewmanagerConfigurationFormType'
     parent: 'form.type.translatable.aware'
-    public: true
     tags:
       - { name: form.type }
 
@@ -27,3 +24,6 @@ services:
       - '@reviewmanager.form.reviewmanager_configuration_form_data_provider'
       - 'Reviewmanager\Form\ReviewmanagerConfigurationFormType'
       - 'ReviewmanagerConfiguration'
+
+  ReviewmanagerConfigurationController:
+    class: Reviewmanager\Controller\ReviewmanagerConfigurationController

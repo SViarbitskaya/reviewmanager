@@ -7,6 +7,7 @@ namespace Reviewmanager\Form;
 use PrestaShopBundle\Form\Admin\Type\TranslatorAwareType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Form\FormBuilderInterface;
 
 class ReviewmanagerConfigurationFormType extends TranslatorAwareType
@@ -23,12 +24,22 @@ class ReviewmanagerConfigurationFormType extends TranslatorAwareType
                 ],
                 'expanded' => true,
                 'multiple' => false,
-                'required' => true
+                'required' => true,
             ])
             ->add('csv_file', FileType::class, [
-                'label' => $this->trans('Upload CSV File', 'Modules.Reviewmanager.Admin'),
                 'help' => $this->trans('Please upload the CSV file if you selected CSV as the source.', 'Modules.Reviewmanager.Admin'),
-                'required' => false
+                'required' => false,
+                'multiple' => false,
+                'constraints' => [
+                    new File([
+                        'maxSize' => '1024k',
+                        'mimeTypes' => [
+                            'text/csv',
+                            'text/plain'
+                        ],
+                        'mimeTypesMessage' => 'Please upload a valid CSV/text document',
+                    ])
+                ],
             ]);
     }
 }

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const sourceOptions = document.querySelectorAll('input[name="reviewmanager_configuration[source]"]');
-    const csvFileInput = document.querySelector('input[name="reviewmanager_configuration[csv_file]"]').closest('.form-group');
+    const sourceOptions = document.querySelectorAll('input[name="form[source]"]');
+    const csvFileInput = document.querySelector('input[name="form[csv_file]"]').closest('.form-group');
 
     toggleCsvFileInput();
 
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function toggleCsvFileInput() {
-        const selectedSource = document.querySelector('input[name="reviewmanager_configuration[source]"]:checked').value;
-        csvFileInput.style.display = selectedSource === 'csv' ? 'block' : 'none';
+        const selectedSource = document.querySelector('input[name="form[source]"]:checked').value;
+        csvFileInput.style.display = selectedSource === 'csv' ? 'flex' : 'none';
     }
 });

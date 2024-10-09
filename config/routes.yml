@@ -1,4 +1,4 @@
-reviewmanager_configuration_form_simple:
+reviewmanager_configuration_form:
   path: /reviewmanager/configuration
   methods: [GET, POST]
   defaults:
